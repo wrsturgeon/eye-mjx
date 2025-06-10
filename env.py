@@ -103,15 +103,7 @@ class Env(PipelineEnv):
         )
 
         height = pipeline_state.geom_xpos[self._sphere_geom_id][2]
-        # debug.print(
-        #     "{pos}[{id}][2] = {indexed}[2] = {final} <? {rad}",
-        #     pos=pipeline_state.geom_xpos,
-        #     id=self._sphere_geom_id,
-        #     indexed=pipeline_state.geom_xpos[self._sphere_geom_id],
-        #     final=height,
-        #     rad=measurements.SPHERE_RADIUS,
-        # )
-        done = 1.0 * (height < measurements.SPHERE_RADIUS)
+        done = jp.zeros(())
 
         # Loss calculation:
         @jaxtyped(typechecker=beartype)
@@ -147,9 +139,7 @@ class Env(PipelineEnv):
         metrics = {
             f"loss/{k}": v * loss_by_name(k) for k, v in self._loss_weights().items()
         }
-        reward = -sum(metrics.values()) * jp.where(
-            done, 2.0 * network.EPISODE_LENGTH / state.info["step"], 1.0
-        )
+        reward = -sum(metrics.values())
         metrics["reward"] = reward
 
         @jaxtyped(typechecker=beartype)
