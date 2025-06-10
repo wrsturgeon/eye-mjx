@@ -15,7 +15,7 @@ from randomize import randomize
 from typing import Any, Callable, Dict, Tuple, Union
 
 
-N_TIMESTEPS_IN_TRAINING = 100_000_000 # 100_000
+N_TIMESTEPS_IN_TRAINING = 100_000_000  # 100_000
 POLICY_HIDDEN_LAYER_SIZES = (128,) * 4
 NORMALIZE_OBSERVATIONS = True
 
