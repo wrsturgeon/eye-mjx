@@ -129,6 +129,9 @@ class Env(PipelineEnv):
                     jp.arcsin(math.rotate(jp.array([0.0, 0.0, 1.0]), x.rot[0])[:2])
                     / TILT_STDDEV
                 )
+            elif name == "submerging":
+                ideal = jp.zeros(height.shape)
+                actual = (height < measurements.SPHERE_RADIUS)
             else:
                 raise ValueError(f"Unrecognized loss name: `{name}`")
             error = actual - ideal
@@ -229,6 +232,7 @@ class Env(PipelineEnv):
             "angular_velocity": jp.asarray(0.5),
             "height": jp.asarray(0.125),
             "tilt": jp.asarray(0.125),
+            "submerging": jp.asarray(100.0),
         }
 
 
