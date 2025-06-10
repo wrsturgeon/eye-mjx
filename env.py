@@ -16,20 +16,6 @@ from typing import Any, Dict
 import units
 
 
-PRODUCTION_REFRESH_RATE_HZ = 50
-OBSERVATION_HISTORY_SIZE = 15
-
-
-LINEAR_VELOCITY_STDDEV = units.inches(12) / units.seconds(1)
-ANGULAR_VELOCITY_STDDEV = units.degrees(180) / units.seconds(1)
-HEIGHT_EXPECTATION = measurements.LENGTH_KNEE_TO_FOOT
-HEIGHT_STDDEV = measurements.LENGTH_KNEE_TO_FOOT / 2
-TILT_STDDEV = units.degrees(15)
-
-
-SENSOR_NOISE = 0.01
-
-
 PIPELINE_DEBUG = True
 
 
@@ -52,15 +38,15 @@ class Env(PipelineEnv):
         #   debug: whether to get debug info from the pipeline init/step
 
         # In production, we want to run this algorithm
-        # `PRODUCTION_REFRESH_RATE_HZ` times per second,
+        # `measurements.PRODUCTION_REFRESH_RATE_HZ` times per second,
         # so `n_frames` needs to be the number of physics steps per second
-        # divided by `PRODUCTION_REFRESH_RATE_HZ`.
+        # divided by `measurements.PRODUCTION_REFRESH_RATE_HZ`.
         physics_steps_per_second = 1 / sys.opt.timestep
-        n_frames = physics_steps_per_second / PRODUCTION_REFRESH_RATE_HZ
+        n_frames = physics_steps_per_second / measurements.PRODUCTION_REFRESH_RATE_HZ
         super().__init__(
             sys=sys, backend="mjx", n_frames=n_frames, debug=PIPELINE_DEBUG
         )
-        assert int(round(1 / self.dt)) == PRODUCTION_REFRESH_RATE_HZ
+        assert int(round(1 / self.dt)) == measurements.PRODUCTION_REFRESH_RATE_HZ
 
     @jaxtyped(typechecker=beartype)
     def reset(self, key: UInt[Array, "2"]) -> State:
@@ -68,7 +54,7 @@ class Env(PipelineEnv):
         pipeline_state = self.pipeline_init(q=self.sys.qpos0, qd=jp.zeros(self.sys.nv))
         info = {
             "command": self._sample_command(command_key),
-            "history": jp.zeros((OBSERVATION_HISTORY_SIZE, 6)),
+            "history": jp.zeros((measurements.OBSERVATION_HISTORY_SIZE, 6)),
             "key": state_key,
             "positions_requested_last_frame": jp.zeros(self.action_size),
             "step": 0,
@@ -109,29 +95,29 @@ class Env(PipelineEnv):
         @jaxtyped(typechecker=beartype)
         def loss_by_name(name: str) -> Float[Array, ""]:
             if name == "linear_velocity":
-                ideal = command[:2] / LINEAR_VELOCITY_STDDEV
+                ideal = command[:2] / measurements.LINEAR_VELOCITY_STDDEV
                 actual = (
                     math.rotate(xd.vel[0], math.quat_inv(x.rot[0]))[:2]
-                    / LINEAR_VELOCITY_STDDEV
+                    / measurements.LINEAR_VELOCITY_STDDEV
                 )
             elif name == "angular_velocity":
-                ideal = command[2] / ANGULAR_VELOCITY_STDDEV
+                ideal = command[2] / measurements.ANGULAR_VELOCITY_STDDEV
                 actual = (
                     math.rotate(xd.ang[0], math.quat_inv(x.rot[0]))[2]
-                    / ANGULAR_VELOCITY_STDDEV
+                    / measurements.ANGULAR_VELOCITY_STDDEV
                 )
-            elif name == "height":
-                ideal = command[3] / HEIGHT_STDDEV
-                actual = height / HEIGHT_STDDEV
-            elif name == "tilt":
-                ideal = command[4:6] / TILT_STDDEV
-                actual = (
-                    jp.arcsin(math.rotate(jp.array([0.0, 0.0, 1.0]), x.rot[0])[:2])
-                    / TILT_STDDEV
-                )
+            # elif name == "height":
+            #     ideal = command[3] / HEIGHT_STDDEV
+            #     actual = height / HEIGHT_STDDEV
+            # elif name == "tilt":
+            #     ideal = command[4:6] / TILT_STDDEV
+            #     actual = (
+            #         jp.arcsin(math.rotate(jp.array([0.0, 0.0, 1.0]), x.rot[0])[:2])
+            #         / TILT_STDDEV
+            #     )
             elif name == "submerging":
                 ideal = jp.zeros(height.shape)
-                actual = (height < measurements.SPHERE_RADIUS)
+                actual = height < measurements.SPHERE_RADIUS
             else:
                 raise ValueError(f"Unrecognized loss name: `{name}`")
             error = actual - ideal
@@ -182,7 +168,7 @@ class Env(PipelineEnv):
         self, pipeline_state: PipelineState, key: UInt[Array, "2"]
     ) -> Float[Array, "flattened"]:
         obs = pipeline_state.sensordata
-        return obs + jr.normal(key, obs.shape) * SENSOR_NOISE
+        return obs + jr.normal(key, obs.shape) * measurements.SENSOR_NOISE
 
     @jaxtyped(typechecker=beartype)
     def _observations_are_more_than_sensor_readings(
@@ -211,10 +197,10 @@ class Env(PipelineEnv):
     def _sample_command(self, key: UInt[Array, "2"]) -> Float[Array, "6"]:
         # lv_x, lv_y, av, h, t_x, t_y
         command = jr.normal(key, (6,))
-        command = command.at[0:2].multiply(LINEAR_VELOCITY_STDDEV)
-        command = command.at[2].multiply(ANGULAR_VELOCITY_STDDEV)
-        command = command.at[3].multiply(HEIGHT_STDDEV)
-        command = command.at[3].add(HEIGHT_EXPECTATION)
+        command = command.at[0:2].multiply(measurements.LINEAR_VELOCITY_STDDEV)
+        command = command.at[2].multiply(measurements.ANGULAR_VELOCITY_STDDEV)
+        command = command.at[3].multiply(measurements.HEIGHT_STDDEV)
+        command = command.at[3].add(measurements.HEIGHT_EXPECTATION)
         command = command.at[3].set(
             jp.where(
                 command[3] < measurements.SPHERE_RADIUS,
@@ -222,7 +208,7 @@ class Env(PipelineEnv):
                 command[3],
             )
         )
-        command = command.at[4:6].multiply(TILT_STDDEV)
+        command = command.at[4:6].multiply(measurements.TILT_STDDEV)
         return command
 
     @jaxtyped(typechecker=beartype)
@@ -230,9 +216,9 @@ class Env(PipelineEnv):
         return {
             "linear_velocity": jp.asarray(1.0),
             "angular_velocity": jp.asarray(0.5),
-            "height": jp.asarray(0.125),
-            "tilt": jp.asarray(0.125),
-            "submerging": jp.asarray(100.0),
+            # "height": jp.asarray(0.125),
+            # "tilt": jp.asarray(0.125),
+            "submerging": jp.asarray(10.0),
         }
 
 

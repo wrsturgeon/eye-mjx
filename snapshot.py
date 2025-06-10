@@ -5,15 +5,16 @@ from beartype import beartype
 from brax.training.acme.running_statistics import RunningStatisticsState
 from brax.training.agents.ppo.losses import PPONetworkParams
 from cv2 import VideoWriter, VideoWriter_fourcc as fourcc
-from env import Env, PRODUCTION_REFRESH_RATE_HZ
+from env import Env
 from jax import jit, random as jr
 from jaxtyping import jaxtyped
+import measurements
 from os import makedirs
 from typing import Any, Callable, Dict, Tuple, Union
 
 
 N_SNAPSHOTS = 10
-N_STEPS_PER_SNAPSHOT = 500
+N_STEPS_PER_SNAPSHOT = int(2.5 * measurements.PRODUCTION_REFRESH_RATE_HZ)
 
 
 EVAL_ENV = Env()
@@ -59,11 +60,13 @@ def snapshot_valid_input(
             rollout.append(state.pipeline_state)
             if state.done:
                 break
+        assert len(rollout) > 0, "Empty rollout!"
         video = RENDER(rollout)
+        assert len(video) > 0, "Empty video!"
         writer = VideoWriter(
             f"{snapshot_folder}/sample_{sample_number}.mp4",
             fourcc(*"mp4v"),
-            PRODUCTION_REFRESH_RATE_HZ,
+            measurements.PRODUCTION_REFRESH_RATE_HZ,
             video[0].shape[:-1][::-1],
         )
         for frame in video:

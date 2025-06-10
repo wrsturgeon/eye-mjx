@@ -7,10 +7,18 @@ import units
 N_LEGS = 3
 
 
+PRODUCTION_REFRESH_RATE_HZ = 50
+OBSERVATION_HISTORY_SIZE = 15
+SENSOR_NOISE = 0.0
+
+
 LENGTH_CENTER_TO_ROLL = units.inches(2)
 LENGTH_ROLL_TO_PITCH = units.inches(0.5)
 LENGTH_PITCH_TO_KNEE = units.inches(2)
 LENGTH_KNEE_TO_FOOT = units.inches(4.5)
+
+
+SIMULATION_TIMESTEP_SECONDS = 0.004
 
 
 TOTAL_MASS = units.grams(250)
@@ -36,3 +44,10 @@ SPHERE_RADIUS = units.inches(5) / 2
 LEG_RADIUS = units.inches(0.2)
 FOOT_RADIUS = units.inches(0.25)
 FLOOR_THICKNESS = units.inches(2)
+
+
+LINEAR_VELOCITY_STDDEV = units.inches(12) / units.seconds(1)
+ANGULAR_VELOCITY_STDDEV = units.degrees(180) / units.seconds(1)
+HEIGHT_EXPECTATION = LENGTH_KNEE_TO_FOOT
+HEIGHT_STDDEV = LENGTH_KNEE_TO_FOOT / 2
+TILT_STDDEV = units.degrees(15)

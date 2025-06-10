@@ -10,6 +10,7 @@ from etils import epath
 from flax.training import orbax_utils
 import functools
 from jaxtyping import jaxtyped
+import measurements
 from orbax import checkpoint as ocp
 from randomize import randomize
 from typing import Any, Callable, Dict, Tuple, Union
@@ -23,8 +24,8 @@ NORMALIZE_OBSERVATIONS = True
 BATCH_SIZE = 32
 N_MINIBATCHES = 16
 N_ENVS = BATCH_SIZE * N_MINIBATCHES
-N_EVALS = 10
-EPISODE_LENGTH = 1_000
+N_CHECKPOINTS = 100
+EPISODE_LENGTH_SECONDS = 2.5
 
 
 factory = functools.partial(
@@ -74,14 +75,15 @@ def progress(num_steps: int, metrics: Dict[str, Any]) -> None:
         print(f"        {k}: {v}")
 
 
+episode_length = EPISODE_LENGTH_SECONDS / measurements.SIMULATION_TIMESTEP_SECONDS
 train = functools.partial(
     train.train,
     learning_rate=3e-4,
     num_timesteps=N_TIMESTEPS_IN_TRAINING,
     normalize_observations=NORMALIZE_OBSERVATIONS,
     num_envs=N_ENVS,
-    num_evals=N_EVALS,
-    episode_length=EPISODE_LENGTH,
+    num_evals=N_CHECKPOINTS,
+    episode_length=episode_length,
     batch_size=BATCH_SIZE,
     num_minibatches=N_MINIBATCHES,
     network_factory=factory,

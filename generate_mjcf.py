@@ -26,9 +26,6 @@ ENABLE_FSRS = False  # True
 ENABLE_SPHERE = True
 
 
-SIMULATION_TIMESTEP = 0.004
-
-
 FOOT_FRICTION_SLIDING = 1
 FOOT_FRICTION_TORSIONAL = 1
 FOOT_FRICTION_ROLLING = 1
@@ -52,7 +49,9 @@ XML.SubElement(robot, "compiler", autolimits="true")
 
 
 # Runtime options:
-option = XML.SubElement(robot, "option", timestep=f"{SIMULATION_TIMESTEP}")
+option = XML.SubElement(
+    robot, "option", timestep=f"{measurements.SIMULATION_TIMESTEP_SECONDS}"
+)
 XML.SubElement(option, "flag", eulerdamp="disable")
 
 
