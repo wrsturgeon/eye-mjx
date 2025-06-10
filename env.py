@@ -212,6 +212,13 @@ class Env(PipelineEnv):
         command = command.at[2].multiply(ANGULAR_VELOCITY_STDDEV)
         command = command.at[3].multiply(HEIGHT_STDDEV)
         command = command.at[3].add(HEIGHT_EXPECTATION)
+        command = command.at[3].set(
+            jp.where(
+                command[3] < measurements.SPHERE_RADIUS,
+                measurements.SPHERE_RADIUS,
+                command[3],
+            )
+        )
         command = command.at[4:6].multiply(TILT_STDDEV)
         return command
 
